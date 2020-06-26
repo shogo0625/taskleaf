@@ -4,6 +4,16 @@ class TasksController < ApplicationController
   def index
     @q = current_user.tasks.ransack(params[:q])
     @tasks = @q.result(distinct: true)
+
+    respond_to do |format|
+      format.html
+      format.csv { send_data @tasks.generate_csv, filename: "tasks-#{Time.zone.now.strftime('%Y%m%d%S')}.csv" }
+    end
+  end
+  # CSVファイルインポート用アクション
+  def import
+    current_user.tasks.import(params[:file])
+    redirect_to tasks_url, notice: 'タスクを追加しました'
   end
 
   def show
@@ -12,7 +22,7 @@ class TasksController < ApplicationController
   def new
     @task = Task.new
   end
-  # タスク登録確認画面
+  # タスク登録確認画面(newからもパラメータ送るためPOSTで送信してる)
   def confirm_new
     @task = current_user.tasks.new(task_params)
     render :new unless @task.valid?

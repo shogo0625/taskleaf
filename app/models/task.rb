@@ -7,6 +7,28 @@ class Task < ApplicationRecord
 
   scope :recent, -> { order(created_at: :desc) }
 
+  # CSVファイルのカラム設定
+  def self.csv_attributes
+    ["name", "description", "created_at", "updated_at"]
+  end
+  # CSVエクスポートの設定
+  def self.generate_csv
+    CSV.generate(headers: true) do |csv|
+      csv << csv_attributes
+      all.each do |task|
+        csv << csv_attributes.map { |attr| task.send(attr) }
+      end
+    end
+  end
+  # CSVインポートの設定
+  def self.import(file)
+    CSV.foreach(file.path, headers: true) do |row|
+      task = new
+      task.attributes = row.to_hash.slice(*csv_attributes)
+      task.save!
+    end
+  end
+
   def self.ransackable_attributes(auth_object = nil)
     %w[name created_at]
   end
